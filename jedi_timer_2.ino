@@ -29,12 +29,12 @@ int tones[] = {261, 277, 294, 311, 330, 349, 370, 392, 415, 440,  493, 523};
 //                DO     RE         MI   FA       SOL        LA   SI   DO
 
 TM1637Display display(CLK, DIO);
-int tally;
 char counterstate;
+char resetstate;
+int tally;
 int wait;
 int lastwait;
 int mytimer;
-int accrueddelay;
 uint8_t data[] = { 0xff, 0xff, 0xff, 0xff };
 uint8_t blank[] = { 0x00, 0x00, 0x00, 0x00 };
 
@@ -84,6 +84,13 @@ void loop() {
 
   wait = wait + 1;
 
+  if ( resetstate == 'R' ) {
+    tally = 0 ;
+    wait = 0 ;
+    resetstate = '0' ;
+    display.clear();
+
+  }
 
   if ( ( tally > 0 ) && (( wait - lastwait ) >= READWAIT ) ){
     //Serial.println("################TIMER STARTING#################");
@@ -162,36 +169,26 @@ void loop() {
         tone(speakerPin, tones[0]);
         delay(500);
         noTone(speakerPin);                  
-        /*
-        data[0] = display.encodeDigit(0);      // Just display 0000 when waving UP
-        data[1] = display.encodeDigit(0);
-        data[2] = display.encodeDigit(0);
-        data[3] = display.encodeDigit(0);
-        for (int i = 0 ; i <= 2 ; i++) {
-          display.setSegments(data);
-          delay(200);
-          display.setSegments(blank);
-          delay(200);        
-        }
-        */
         break;
       case GES_DOWN_FLAG:                      // Have to figure out what to do with the rest of these gestures
         Serial.println(F("Down"));
         tone(speakerPin, tones[3]);
         delay(SECOND/2);
         noTone(speakerPin);
-        //for(int k=0; k <= 4; k++) {
-        //   display.showNumberDecEx(0, (0x80 >> k), true);
-        //   delay(SECOND);
-        // }
-        displayTime(tally);
-        delay(SECOND);
         break;
       case GES_FORWARD_FLAG:
         Serial.println(F("Forward"));
+        tone(speakerPin, tones[8]);
+        delay(SECOND/8);
+        noTone(speakerPin);
+        resetstate = 'R';
         break;
       case GES_BACKWARD_FLAG:     
         Serial.println(F("Backward"));
+        tone(speakerPin, tones[9]);
+        delay(SECOND/8);
+        noTone(speakerPin);
+        resetstate = 'R';
         break;
       default:
         break;
