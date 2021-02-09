@@ -38,6 +38,11 @@ int accrueddelay;
 uint8_t data[] = { 0xff, 0xff, 0xff, 0xff };
 uint8_t blank[] = { 0x00, 0x00, 0x00, 0x00 };
 
+void displayTime(int rawtally){
+  int minutes = (rawtally / 60)*100 ;
+  int seconds = rawtally % 60 ;
+  display.showNumberDecEx((minutes + seconds),0b11100000);
+}
 
 void setup() {
   // Initialise serial connection to display results
@@ -90,9 +95,8 @@ void loop() {
     } else {
       mytimer = mytimer - 1 ;
       tally = mytimer ;
-      display.showNumberDec(mytimer, false); 
+      displayTime(mytimer); 
       delay(SECOND);
-      display.setSegments(blank);
       // Reached end of count, reset all counters, Play BELL
       if ( mytimer == 0 ) {
         counterstate = 'Y';
@@ -130,7 +134,7 @@ void loop() {
         counterstate = 'Y';
         lastwait = wait ;
         for (int i = 0; i <= 4; i++) {
-          display.showNumberDec(tally, false); 
+          displayTime(tally); 
           delay(100);
           display.setSegments(blank);
           delay(100);
@@ -145,7 +149,7 @@ void loop() {
         counterstate = 'Y';
         lastwait = wait ;
         for (int i = 0; i <= 5; i++) {
-          display.showNumberDec(tally, false); 
+          displayTime(tally); 
           delay(100);
           display.setSegments(blank);
           delay(100);
@@ -174,8 +178,14 @@ void loop() {
       case GES_DOWN_FLAG:                      // Have to figure out what to do with the rest of these gestures
         Serial.println(F("Down"));
         tone(speakerPin, tones[3]);
-        delay(500);
+        delay(SECOND/2);
         noTone(speakerPin);
+        //for(int k=0; k <= 4; k++) {
+        //   display.showNumberDecEx(0, (0x80 >> k), true);
+        //   delay(SECOND);
+        // }
+        displayTime(tally);
+        delay(SECOND);
         break;
       case GES_FORWARD_FLAG:
         Serial.println(F("Forward"));
