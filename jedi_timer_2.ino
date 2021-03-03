@@ -21,7 +21,7 @@
 
 
 // Buzzer + pin
-int speakerPin = 12;
+int speakerPin = 5;
 // Alarm
 int numTones = 12;
 int tones[] = {261, 277, 294, 311, 330, 349, 370, 392, 415, 440,  493, 523};
@@ -50,13 +50,13 @@ void setup() {
 
   display.setBrightness(0x0f);
 
-  // All segments on
+  // All display segments on
   display.setSegments(data);
   delay(SECOND);
   display.setSegments(blank);
 
 
-  // Initialise the sensor
+  // Initialise the gesture sensor
   int error = paj7620Init();
   if(error) {
     Serial.print(F("Initialisation error code: "));
@@ -84,6 +84,7 @@ void loop() {
 
   wait = wait + 1;
 
+  // RESET state has been recorded, set counters to zero now
   if ( resetstate == 'R' ) {
     tally = 0 ;
     wait = 0 ;
@@ -92,6 +93,7 @@ void loop() {
 
   }
 
+  // START Timer countdown now
   if ( ( tally > 0 ) && (( wait - lastwait ) >= READWAIT ) ){
     //Serial.println("################TIMER STARTING#################");
     wait = READWAIT + 1;
@@ -118,18 +120,18 @@ void loop() {
           delay(200);
         }
         noTone(speakerPin);
+        display.setSegments(blank);
       } 
     }
   }
 
 
-  // Create a variable to hold the value of any gesture recognised
-  byte gesture;
-  // Error variable holds any error code
-  int error;
-  // Read Reg 0x43 of Bank 0 to get result of any recognised gesture, and store in 'gesture' variable
-  error = paj7620ReadReg(0x43, 1, &gesture);
- 
+  // READ Gesture input here
+  
+  byte gesture;                                // Create a variable to hold the value of any gesture recognised
+  int error;                                   // Error variable holds any error code
+  error = paj7620ReadReg(0x43, 1, &gesture);   // Read Reg 0x43 of Bank 0 to get result of any recognised gesture, 
+                                               //    and store in 'gesture' variable
   if(!error) {
     switch (gesture) {
       case GES_RIGHT_FLAG:
@@ -137,7 +139,7 @@ void loop() {
         tone(speakerPin, tones[9]);
         delay(500);
         noTone(speakerPin);
-        tally = tally + 300;   // ADD 5 Minutes when waving LEFT
+        tally = tally + 300;   // ADD 5 Minutes when waving RIGHT
         counterstate = 'Y';
         lastwait = wait ;
         for (int i = 0; i <= 4; i++) {
@@ -176,14 +178,14 @@ void loop() {
         delay(SECOND/2);
         noTone(speakerPin);
         break;
-      case GES_FORWARD_FLAG:
+      case GES_FORWARD_FLAG:                  // Reset counters when forward gesture is detected
         Serial.println(F("Forward"));
         tone(speakerPin, tones[8]);
         delay(SECOND/8);
         noTone(speakerPin);
         resetstate = 'R';
         break;
-      case GES_BACKWARD_FLAG:     
+      case GES_BACKWARD_FLAG:                 // Reset counters when backward gesture is detected
         Serial.println(F("Backward"));
         tone(speakerPin, tones[9]);
         delay(SECOND/8);
