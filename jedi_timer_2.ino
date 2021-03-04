@@ -29,12 +29,13 @@ int tones[] = {261, 277, 294, 311, 330, 349, 370, 392, 415, 440,  493, 523};
 //                DO     RE         MI   FA       SOL        LA   SI   DO
 
 TM1637Display display(CLK, DIO);
-char counterstate;
-char resetstate;
-int tally;
-int wait;
-int lastwait;
-int mytimer;
+char counterstate;      // Controls whether to start the timer counter
+char resetstate;        // Reset counters flag
+unsigned int wait;      // The main loop counter
+unsigned int lastwait;  // The comparison value to keep track of counter
+unsigned int tally;     // The entered time value
+unsigned int mytimer;   // The timer value to render on the display
+unsigned int recorded;  // The initial value recorded, to flash at the end of timer countdown
 uint8_t data[] = { 0xff, 0xff, 0xff, 0xff };
 uint8_t blank[] = { 0x00, 0x00, 0x00, 0x00 };
 
@@ -80,7 +81,7 @@ void loop() {
     Serial.print("Tally: ");
     Serial.println(tally);
   }
-*/  
+*/
 
   wait = wait + 1;
 
@@ -89,11 +90,13 @@ void loop() {
     tally = 0 ;
     wait = 0 ;
     resetstate = '0' ;
+    recorded = 0 ;
     display.clear();
 
   }
 
-  // START Timer countdown now
+
+  // START displaying Timer countdown now
   if ( ( tally > 0 ) && (( wait - lastwait ) >= READWAIT ) ){
     //Serial.println("################TIMER STARTING#################");
     wait = READWAIT + 1;
@@ -104,7 +107,7 @@ void loop() {
     } else {
       mytimer = mytimer - 1 ;
       tally = mytimer ;
-      displayTime(mytimer); 
+      displayTime(mytimer);
       delay(SECOND);
       // Reached end of count, reset all counters, Play BELL
       if ( mytimer == 0 ) {
@@ -113,24 +116,26 @@ void loop() {
         wait = 0;
         lastwait = 0;
         // Play BELL
-        for (int i = 0 ; i <= 25 ; i++) {       
+        for (int i = 0 ; i <= 25 ; i++) {
           tone(speakerPin, tones[2]);
+          display.setSegments(blank);
           delay(100);
           tone(speakerPin, tones[10]);
+          displayTime(recorded);
           delay(200);
         }
         noTone(speakerPin);
         display.setSegments(blank);
-      } 
+      }
     }
   }
 
 
   // READ Gesture input here
-  
+
   byte gesture;                                // Create a variable to hold the value of any gesture recognised
   int error;                                   // Error variable holds any error code
-  error = paj7620ReadReg(0x43, 1, &gesture);   // Read Reg 0x43 of Bank 0 to get result of any recognised gesture, 
+  error = paj7620ReadReg(0x43, 1, &gesture);   // Read Reg 0x43 of Bank 0 to get result of any recognised gesture,
                                                //    and store in 'gesture' variable
   if(!error) {
     switch (gesture) {
@@ -143,13 +148,15 @@ void loop() {
         counterstate = 'Y';
         lastwait = wait ;
         for (int i = 0; i <= 4; i++) {
-          displayTime(tally); 
+          displayTime(tally);
           delay(100);
           display.setSegments(blank);
           delay(100);
         }
+        display.setSegments(blank);
+        recorded = tally;
         break;
-      case GES_LEFT_FLAG: 
+      case GES_LEFT_FLAG:
         Serial.println(F("Left"));
         tone(speakerPin, tones[6]);
         delay(500);
@@ -158,19 +165,19 @@ void loop() {
         counterstate = 'Y';
         lastwait = wait ;
         for (int i = 0; i <= 5; i++) {
-          displayTime(tally); 
+          displayTime(tally);
           delay(100);
           display.setSegments(blank);
           delay(100);
         }
         display.setSegments(blank);
-        
+        recorded = tally;
         break;
       case GES_UP_FLAG:
         Serial.println(F("Up"));
         tone(speakerPin, tones[0]);
         delay(500);
-        noTone(speakerPin);                  
+        noTone(speakerPin);
         break;
       case GES_DOWN_FLAG:                      // Have to figure out what to do with the rest of these gestures
         Serial.println(F("Down"));
